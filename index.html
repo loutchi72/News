@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlashTerminal - Éco & Monde</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black text-zinc-100 min-h-screen antialiased">
+
+  <!-- BANDEAU BOURSE & MARCHÉS -->
+  <div class="bg-zinc-950 border-b border-zinc-800 text-xs text-zinc-300 py-2 px-4 overflow-x-auto">
+    <div id="ticker" class="max-w-7xl mx-auto flex items-center gap-6 whitespace-nowrap">
+      <span class="text-zinc-500 font-bold uppercase tracking-wider text-[10px]">Marchés</span>
+      <div class="flex items-center gap-2">
+        <span class="font-semibold text-white">CAC 40</span>
+        <span>7 540 pts</span>
+        <span class="text-emerald-400">+0.45%</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-semibold text-white">S&P 500</span>
+        <span>5 480 pts</span>
+        <span class="text-rose-400">-0.12%</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-semibold text-white">BTC</span>
+        <span id="btc-price">Chargement...</span>
+        <span id="btc-change" class="text-zinc-500">-</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="font-semibold text-white">OR (Once)</span>
+        <span>$2 410</span>
+        <span class="text-emerald-400">+0.60%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <header class="border-b border-zinc-800 px-4 py-3 sticky top-0 bg-black/90 backdrop-blur z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <h1 class="text-lg font-black tracking-tight uppercase text-white">
+        Flash<span class="text-zinc-500">Terminal</span>
+      </h1>
+      <div class="flex items-center gap-2">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span class="text-xs text-zinc-400">Direct</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENU PRINCIPAL -->
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- ONGLETS FILTRES -->
+    <div class="flex border-b border-zinc-800 gap-2 pb-2 overflow-x-auto text-xs font-medium">
+      <button onclick="filterNews('all')" id="tab-all" class="tab-btn px-3 py-1.5 rounded-md bg-zinc-800 text-white">Tout le fil</button>
+      <button onclick="filterNews('macro')" id="tab-macro" class="tab-btn px-3 py-1.5 rounded-md text-zinc-400 hover:text-white">Macro & Géopolitique</button>
+      <button onclick="filterNews('markets')" id="tab-markets" class="tab-btn px-3 py-1.5 rounded-md text-zinc-400 hover:text-white">Bourse & Crypto</button>
+      <button onclick="filterNews('general')" id="tab-general" class="tab-btn px-3 py-1.5 rounded-md text-zinc-400 hover:text-white">France & Monde</button>
+    </div>
+
+    <!-- GRILLE D'ARTICLES -->
+    <div id="news-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Les articles s'insèrent ici automatiquement -->
+    </div>
+  </main>
+
+ <script>
+    // Configuration des flux RSS gratuits à aspirer
+    const FEEDS = [
+      {
+        url: "https://www.francetvinfo.fr/titres.rss",
+        source: "France Info",
+        category: "general",
+        categoryLabel: "France & Monde",
+        badgeStyle: "bg-zinc-800 text-zinc-300 border-zinc-700"
+      },
+      {
+        url: "https://cryptonaute.fr/feed/",
+        source: "CryptoNaute",
+        category: "markets",
+        categoryLabel: "Bourse & Crypto",
+        badgeStyle: "bg-amber-950 text-amber-400 border-amber-800"
+      },
+      {
+        url: "https://www.latribune.fr/economie/rss.xml",
+        source: "La Tribune",
+        category: "macro",
+        categoryLabel: "Macro & Géopolitique",
+        badgeStyle: "bg-indigo-950 text-indigo-400 border-indigo-800"
+      }
+    ];
+
+    let allArticles = [];
+
+    // Calcul du temps écoulé
+    function formatTime(pubDate) {
+      if (!pubDate) return "Direct";
+      const minutes = Math.floor((new Date() - new Date(pubDate)) / 60000);
+      if (minutes < 1) return "À l'instant";
+      if (minutes < 60) return `Il y a ${minutes} min`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `Il y a ${hours} h`;
+      return `Il y a ${Math.floor(hours / 24)} j`;
+    }
+
+    // Affichage des cartes
+    function renderArticles(list) {
+      const container = document.getElementById("news-grid");
+      if (list.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-zinc-500 py-10 text-center">Aucune dépêche trouvée pour cette catégorie.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(item => `
+        <article class="p-4 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-700 transition flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded border ${item.badgeStyle}">
+                ${item.categoryLabel}
+              </span>
+              <span class="text-xs text-zinc-500">${formatTime(item.pubDate)}</span>
+            </div>
+            <h2 class="text-base font-semibold text-white mb-2 leading-snug">
+              <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="hover:underline">${item.title}</a>
+            </h2>
+            <p class="text-sm text-zinc-400 mb-4 line-clamp-3">${item.summary}</p>
+          </div>
+          <div class="text-xs text-zinc-500 font-medium">Source : ${item.source}</div>
+        </article>
+      `).join('');
+    }
+
+    // Filtrage
+    function filterNews(cat) {
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.classList.remove("bg-zinc-800", "text-white");
+        btn.classList.add("text-zinc-400");
+      });
+      document.getElementById("tab-" + cat).classList.add("bg-zinc-800", "text-white");
+      document.getElementById("tab-" + cat).classList.remove("text-zinc-400");
+
+      if (cat === "all") {
+        renderArticles(allArticles);
+      } else {
+        renderArticles(allArticles.filter(a => a.category === cat));
+      }
+    }
+
+    // Aspiration des flux RSS
+    async function loadRealNews() {
+      const container = document.getElementById("news-grid");
+      container.innerHTML = `<div class="col-span-full text-zinc-500 py-10 text-center animate-pulse">Chargement des dépêches en direct...</div>`;
+      
+      const promises = FEEDS.map(async (feed) => {
+        try {
+          const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}`);
+          const data = await res.json();
+          if (!data.items) return [];
+
+          return data.items.map(entry => {
+            // Nettoyage des balises HTML dans le résumé
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = entry.description || entry.content || "";
+            const cleanText = tempDiv.textContent || tempDiv.innerText || "";
+
+            return {
+              title: entry.title,
+              summary: cleanText.slice(0, 180) + (cleanText.length > 180 ? "..." : ""),
+              link: entry.link,
+              pubDate: entry.pubDate,
+              source: feed.source,
+              category: feed.category,
+              categoryLabel: feed.categoryLabel,
+              badgeStyle: feed.badgeStyle
+            };
+          });
+        } catch (e) {
+          return [];
+        }
+      });
+
+      const results = await Promise.all(promises);
+      allArticles = results.flat().sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+      renderArticles(allArticles);
+    }
+
+    // Cours Bitcoin direct
+    async function fetchBitcoinPrice() {
+      try {
+        const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true');
+        const data = await res.json();
+        const price = Math.round(data.bitcoin.usd).toLocaleString();
+        const change = data.bitcoin.usd_24h_change.toFixed(2);
+        
+        document.getElementById('btc-price').innerText = '$' + price;
+        const changeEl = document.getElementById('btc-change');
+        changeEl.innerText = (change >= 0 ? '+' : '') + change + '%';
+        changeEl.className = change >= 0 ? 'text-emerald-400' : 'text-rose-400';
+      } catch (e) {
+        document.getElementById('btc-price').innerText = 'Indisponible';
+      }
+    }
+
+    // Lancement
+    fetchBitcoinPrice();
+    loadRealNews();
+
+    // Actualisation automatique toutes les 2 minutes
+    setInterval(fetchBitcoinPrice, 60000);
+    setInterval(loadRealNews, 120000);
+  </script>
+</body>
+</html>
